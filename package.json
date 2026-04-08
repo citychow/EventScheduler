@@ -1,0 +1,13 @@
+{
+  "name": "wembley-monitor",
+  "version": "1.0.0",
+  "description": "Wembley Stadium weekly event monitor with auto-scheduler and XLSX export",
+  "main": "scheduler.js",
+  "scripts": {
+    "start": "node scheduler.js",
+    "check-now": "node scheduler.js --run-now"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.1"
+  }
+}
