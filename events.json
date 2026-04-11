@@ -138,6 +138,12 @@
     "type": "concert"
   },
   {
+    "date": "2026-05-21",
+    "name": "Kitty Kat Ball (18 and Over)",
+    "time": "20:15",
+    "type": "sport"
+  },
+  {
     "date": "2026-05-23",
     "name": "Hemlocke Springs - All Ages to Enter, 21 & Over to Drink",
     "time": "20:00",
@@ -222,6 +228,12 @@
     "type": "sport"
   },
   {
+    "date": "2026-06-23",
+    "name": "underscores w/ Umru",
+    "time": "20:00",
+    "type": "sport"
+  },
+  {
     "date": "2026-06-24",
     "name": "Holly Humberstone",
     "time": "20:00",
@@ -258,6 +270,12 @@
     "type": "concert"
   },
   {
+    "date": "2026-07-12",
+    "name": "Have a Nice Life",
+    "time": "20:00",
+    "type": "concert"
+  },
+  {
     "date": "2026-07-27",
     "name": "Black Moth Super Rainbow w/ Giant Day",
     "time": "20:00",
@@ -280,6 +298,12 @@
     "name": "Grunge Night",
     "time": "20:00",
     "type": "concert"
+  },
+  {
+    "date": "2026-08-23",
+    "name": "Nine Vicious",
+    "time": "20:00",
+    "type": "sport"
   },
   {
     "date": "2026-08-29",

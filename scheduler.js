@@ -30,7 +30,6 @@ require('dotenv').config();
 const EXPORTS_DIR  = path.join(__dirname, 'exports');
 const EVENTS_FILE  = path.join(__dirname, 'events.json');
 const LOG_FILE     = path.join(__dirname, 'run-log.json');
-const TM_KEY_FILE  = path.join(__dirname, 'tm-api-key.txt');
 
 // Wembley Stadium venue ID on Ticketmaster
 const WEMBLEY_VENUE_ID = 'KovZpZAFnIeA,KovZpZAEknlA';
@@ -41,10 +40,9 @@ if (!fs.existsSync(EXPORTS_DIR)) fs.mkdirSync(EXPORTS_DIR, { recursive: true });
 // ─── API key ──────────────────────────────────────────────────────────────────
 function getApiKey() {
   if (process.env.TM_API_KEY) return process.env.TM_API_KEY;
-  if (fs.existsSync(TM_KEY_FILE)) return fs.readFileSync(TM_KEY_FILE, 'utf8').trim();
   console.error('[ERROR] No Ticketmaster API key found.');
   console.error('  → Get a free key at https://developer.ticketmaster.com');
-  console.error('  → Then set TM_API_KEY env var, or create tm-api-key.txt in this folder.');
+  console.error('  → Remember to set TM_API_KEY env var.');
   process.exit(1);
 }
 
@@ -129,25 +127,30 @@ function exportToCSV(events, weekLabel, weekStart) {
 
   const rows = [
     `# Wembley Stadium — Weekly Monitor`,
-    `# Week: ${weekLabel}`,
+    // `# Week: ${weekLabel}`,
     `# Exported: ${new Date().toLocaleString('en-GB')}`,
     `# Source: Ticketmaster Discovery API`,
     '',
     ['Date', 'Day', 'Time', 'Event Name', 'Type'].map(escape).join(','),
   ];
 
-  for (let i = 0; i < 14; i++) {
-    const d = new Date(weekStart);
-    d.setDate(weekStart.getDate() + i);
-    const key = d.toISOString().split('T')[0];
-    const evs = events.filter(e => e.date === key);
-    if (evs.length === 0) {
-      rows.push([key, DAY_NAMES[d.getDay()], '', 'No event scheduled', ''].map(escape).join(','));
-    } else {
-      evs.forEach(ev =>
-        rows.push([ev.date, DAY_NAMES[d.getDay()], ev.time, ev.name, ev.type].map(escape).join(','))
-      );
-    }
+  // for (let i = 0; i < 14; i++) {
+  //   // const d = new Date(weekStart);
+  //   // d.setDate(weekStart.getDate() + i);
+  //   // const key = d.toISOString().split('T')[0];
+  //   const evs = events.filter(e => e.date === key);
+  //   if (evs.length === 0) {
+  //     rows.push([key, DAY_NAMES[d.getDay()], '', 'No event scheduled', ''].map(escape).join(','));
+  //   } else {
+  //     evs.forEach(ev =>
+  //       rows.push([ev.date, DAY_NAMES[d.getDay()], ev.time, ev.name, ev.type].map(escape).join(','))
+  //     );
+  //   }
+  // }
+
+  for (const ev of events) {
+    const d = new Date(ev.date);
+    rows.push([ev.date, DAY_NAMES[d.getDay()], ev.time, ev.name, ev.type].map(escape).join(','));
   }
 
   fs.writeFileSync(filepath, rows.join('\n'), 'utf8');

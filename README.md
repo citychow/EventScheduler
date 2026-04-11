@@ -113,7 +113,7 @@ Files are saved to `./exports/` with names like:
 ```
 wembley-2026-04-13.csv
 ```
-Each file contains the 7-day weekly schedule with columns: Date, Day, Time, Event Name, Type.
+Each file contains the 14-day weekly schedule with columns: Date, Day, Time, Event Name, Type.
 CSV opens natively in Excel, Numbers, and Google Sheets — no plugins needed.
 
 ---
@@ -126,7 +126,8 @@ CSV opens natively in Excel, Numbers, and Google Sheets — no plugins needed.
 | Dashboard shows no events | Run `node scheduler.js --run-now` to populate events.json |
 | Scheduler stops | Restart with `npm start`; use nohup for persistence |
 
-## To be updated
+## Dev Notes: Program features To be updated
+0. Seperate style from html
 1. Change event duration for export as two weeks from today
 2. Update text description at frontend and exported files
 3. Allow user selectable venue search
