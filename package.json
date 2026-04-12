@@ -1,7 +1,7 @@
 {
   "name": "wembley-monitor",
   "version": "1.0.0",
-  "description": "Wembley Stadium weekly event monitor with auto-scheduler and XLSX export",
+  "description": "Wembley Stadium weekly event monitor with auto-scheduler and CSV export",
   "main": "scheduler.js",
   "scripts": {
     "start": "node scheduler.js",

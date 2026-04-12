@@ -61,38 +61,54 @@ const MONTHS     = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct',
 const DAYS_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
 // ─── Ticketmaster API ─────────────────────────────────────────────────────────
-function fetchTicketmaster(startDate, endDate) {
-  return new Promise((resolve, reject) => {
+async function fetchTicketmaster(startDate, endDate) {
+  const allEvents = [];
+  let page = 0;
+  let totalPages = 1;
+
+  while (page < totalPages) {
     const params = new URLSearchParams({
-      apikey:  getApiKey(),
-      venueId: WEMBLEY_VENUE_ID,
+      apikey:        getApiKey(),
+      venueId:       WEMBLEY_VENUE_ID,
       startDateTime: startDate + 'T00:00:00Z',
       endDateTime:   endDate   + 'T23:59:59Z',
-      size: '50',
-      sort: 'date,asc',
+      size:          '50',
+      page:          String(page),
+      sort:          'date,asc',
     });
 
-    const options = {
-      hostname: 'app.ticketmaster.com',
-      path: `/discovery/v2/events.json?${params}`,
-      method: 'GET',
-      headers: { 'Accept': 'application/json' }
-    };
+    const data = await new Promise((resolve, reject) => {
+      https.get({
+          hostname: 'app.ticketmaster.com',
+          path:     `/discovery/v2/events.json?${params}`,
+          headers:  { 'Accept': 'application/json' }
+        }, res => {
+          let raw = '';
+          res.on('data', chunk => raw += chunk);
+          res.on('end', () => {
+            try { resolve(JSON.parse(raw)); }
+            catch(e) { reject(new Error('JSON parse error: ' + raw.slice(0, 200))); }
+          });
+        }).on('error', reject);
+    });
 
-    https.get(options, res => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        try { resolve(JSON.parse(data)); }
-        catch(e) { reject(new Error('JSON parse error: ' + data.slice(0, 200))); }
-      });
-    }).on('error', reject);
-  });
+    if (data.errors || data.fault) {
+      console.error('[Ticketmaster] API error:', JSON.stringify(data.errors || data.fault));
+      break;
+    }
+
+    const events = data?._embedded?.events || [];
+    allEvents.push(...events);
+    totalPages = data.page?.totalPages ?? 1;
+    console.log(`[Ticketmaster] Page ${page + 1}/${totalPages} — ${events.length} events`);
+    page++;
+  }
+
+  return allEvents;
 }
 
 // ─── Parse Ticketmaster response into our event shape ─────────────────────────
-function parseTicketmasterEvents(tmData) {
-  const items = tmData?._embedded?.events || [];
+function parseTicketmasterEvents(items) {
   return items.map(ev => {
     const dateInfo = ev.dates?.start;
     const date = dateInfo?.localDate || '';
@@ -168,24 +184,9 @@ async function runCheck() {
   const weekLabel = `${DAYS_SHORT[nextMon.getDay()]} ${fmt(nextMon)} – ${DAYS_SHORT[nextSun.getDay()]} ${fmt(nextSun)}`;
 
   // Fetch from Ticketmaster — next week + full upcoming (next 12 months)
-  let freshEvents = [];
-  try {
-    const today12m = new Date(today);
-    today12m.setFullYear(today12m.getFullYear() + 1);
-
-    console.log(`[Ticketmaster] Fetching events ${isoDate(today)} → ${isoDate(today12m)}...`);
-    const tmData = await fetchTicketmaster(isoDate(today), isoDate(today12m));
-
-    if (tmData.errors || tmData.fault) {
-      console.error('[Ticketmaster] API error:', JSON.stringify(tmData.errors || tmData.fault));
-    } else {
-      freshEvents = parseTicketmasterEvents(tmData);
-      const page = tmData.page || {};
-      console.log(`[Ticketmaster] ${freshEvents.length} events fetched (page ${(page.number||0)+1} of ${page.totalPages||1}, total ${page.totalElements||freshEvents.length})`);
-    }
-  } catch(err) {
-    console.error('[Ticketmaster] Fetch error:', err.message);
-  }
+  const tmItems = await fetchTicketmaster(isoDate(today), isoDate(today12m));
+  freshEvents = parseTicketmasterEvents(tmItems);
+  console.log(`[Ticketmaster] ${freshEvents.length} total events fetched`);
 
   // Merge with existing and save
   let existing = [];
@@ -217,28 +218,6 @@ async function runCheck() {
   console.log(`[Done] Check complete.\n`);
 }
 
-// ─── Scheduler ────────────────────────────────────────────────────────────────
-function msUntilNext(dayOfWeek, timeStr) {
-  const [h, m] = timeStr.split(':').map(Number);
-  const now = new Date();
-  const target = new Date(now);
-  target.setHours(h, m, 0, 0);
-  let daysAhead = (dayOfWeek - now.getDay() + 7) % 7;
-  if (daysAhead === 0 && target <= now) daysAhead = 7;
-  target.setDate(now.getDate() + daysAhead);
-  return target - now;
-}
-
-function scheduleNext() {
-  const ms   = msUntilNext(SCHED_DAY, SCHED_TIME);
-  const next = new Date(Date.now() + ms);
-  console.log(`[Scheduler] Next auto-check: ${DAY_NAMES[SCHED_DAY]} at ${SCHED_TIME} (${next.toLocaleString('en-GB')})`);
-  setTimeout(async () => {
-    await runCheck();
-    scheduleNext();
-  }, ms);
-}
-
 // ─── Boot ─────────────────────────────────────────────────────────────────────
 console.log('╔══════════════════════════════════════════════╗');
 console.log('║     Wembley Stadium Weekly Monitor           ║');
@@ -248,6 +227,10 @@ console.log(`Schedule:   every ${DAY_NAMES[SCHED_DAY]} at ${SCHED_TIME}`);
 console.log(`Events file: ${EVENTS_FILE}`);
 console.log(`Exports dir: ${EXPORTS_DIR}`);
 console.log('');
+
+runCheck().catch(err => {
+  console.error('[Error] Failed to run check:', err);
+});
 
 if (runNow) {
   runCheck().then(() => scheduleNext());

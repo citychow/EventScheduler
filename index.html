@@ -71,7 +71,6 @@
   <div><span>Source:</span> wembleystadium.com/events &nbsp;·&nbsp; <span>Built with</span> Claude</div>
 </footer>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 // ─── State ───────────────────────────────────────────────────────────────────
 let weekOffset = 1;
@@ -396,9 +395,6 @@ async function fetchEvents() {
   const now = new Date();
   document.getElementById('last-run-time').textContent = now.toLocaleString('en-GB', { dateStyle:'medium', timeStyle:'short' });
 
-  // const days = getWeekDays(1);
-  // const s = days[0], e = days[6];
-  // const weekLabel = `${DAYS_SHORT[s.getDay()]} ${s.getDate()} ${MONTHS[s.getMonth()]} – ${DAYS_SHORT[e.getDay()]} ${e.getDate()} ${MONTHS[e.getMonth()]} ${e.getFullYear()}`;
   exportCSV();
 
   pill.className = 'status-pill done';
