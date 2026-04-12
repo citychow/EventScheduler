@@ -184,9 +184,18 @@ async function runCheck() {
   const weekLabel = `${DAYS_SHORT[nextMon.getDay()]} ${fmt(nextMon)} – ${DAYS_SHORT[nextSun.getDay()]} ${fmt(nextSun)}`;
 
   // Fetch from Ticketmaster — next week + full upcoming (next 12 months)
-  const tmItems = await fetchTicketmaster(isoDate(today), isoDate(today12m));
-  freshEvents = parseTicketmasterEvents(tmItems);
-  console.log(`[Ticketmaster] ${freshEvents.length} total events fetched`);
+  let freshEvents = [];
+  try {
+    const today12m = new Date(today);
+    today12m.setFullYear(today12m.getFullYear() + 1);
+
+    console.log(`[Ticketmaster] Fetching events ${isoDate(today)} → ${isoDate(today12m)}...`);
+    const tmItems = await fetchTicketmaster(isoDate(today), isoDate(today12m));
+    freshEvents = parseTicketmasterEvents(tmItems);
+    console.log(`[Ticketmaster] ${freshEvents.length} total events fetched`);
+  } catch(err) {
+    console.error('[Ticketmaster] Fetch error:', err.message);
+  }
 
   // Merge with existing and save
   let existing = [];
@@ -229,11 +238,6 @@ console.log(`Exports dir: ${EXPORTS_DIR}`);
 console.log('');
 
 runCheck().catch(err => {
-  console.error('[Error] Failed to run check:', err);
+  console.error('[Fatal] Uncaught error in runCheck:', err);
+  process.exit(1);
 });
-
-if (runNow) {
-  runCheck().then(() => scheduleNext());
-} else {
-  scheduleNext();
-}

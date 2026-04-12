@@ -1,5 +1,5 @@
 # Wembley Stadium — Weekly Monitor
-# Exported: 12/04/2026, 02:09:15
+# Exported: 12/04/2026, 03:01:07
 # Source: Ticketmaster Discovery API
 
 "Date","Day","Time","Event Name","Type"
@@ -56,3 +56,6 @@
 "2026-08-29","Saturday","20:00","The Hip Abduction (21 and Over)","concert"
 "2026-09-04","Friday","20:00","Slayyyter","concert"
 "2026-09-25","Friday","20:30","Peter Hook & The Light (21 and Over)","concert"
+"2026-10-01","Thursday","21:30","Oskar med K (18 and Over)","concert"
+"2026-10-21","Wednesday","20:00","Julia Wolf w/ Bee Blackwell","concert"
+"2026-11-13","Friday","20:00","Inna","concert"
