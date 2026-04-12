@@ -2,6 +2,7 @@
 /**
  * Wembley Monitor — Scheduler
  * Runs as a background Node.js process.
+ * Only run when scheduler.js is called. Repeating handled by pm2. 
  * Every Friday at 14:00 (configurable) it:
  *   1. Calls the Ticketmaster Discovery API (free, no billing required)
  *   2. Parses events for Wembley Stadium (venue ID: KovZpZAFnIeA)
@@ -137,7 +138,8 @@ function mergeEvents(existing, fresh) {
 
 // ─── CSV export (zero dependencies, pure Node built-ins) ─────────────────────
 function exportToCSV(events) {
-  const todayStr = new Date().toISOString().split('T')[0];
+  const now = new Date();
+const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
   const filename = `wembley-${todayStr}.csv`;
   const filepath = path.join(EXPORTS_DIR, filename);
 
@@ -179,7 +181,13 @@ async function runCheck() {
   const nextSun = new Date(nextMon);
   nextSun.setDate(nextMon.getDate() + 6);
 
-  const isoDate = d => d.toISOString().split('T')[0];
+  // const isoDate = d => d.toISOString().split('T')[0];
+  const fmtDate = d => {
+  const y  = d.getFullYear();
+  const m  = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${dd}`;
+};
   const fmt     = d => `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
   const weekLabel = `${DAYS_SHORT[nextMon.getDay()]} ${fmt(nextMon)} – ${DAYS_SHORT[nextSun.getDay()]} ${fmt(nextSun)}`;
 
@@ -189,8 +197,8 @@ async function runCheck() {
     const today12m = new Date(today);
     today12m.setFullYear(today12m.getFullYear() + 1);
 
-    console.log(`[Ticketmaster] Fetching events ${isoDate(today)} → ${isoDate(today12m)}...`);
-    const tmItems = await fetchTicketmaster(isoDate(today), isoDate(today12m));
+    console.log(`[Ticketmaster] Fetching events ${fmtDate(today)} → ${fmtDate(today12m)}...`);
+    const tmItems = await fetchTicketmaster(fmtDate(today), fmtDate(today12m));
     freshEvents = parseTicketmasterEvents(tmItems);
     console.log(`[Ticketmaster] ${freshEvents.length} total events fetched`);
   } catch(err) {
