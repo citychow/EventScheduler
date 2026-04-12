@@ -82,64 +82,43 @@ const DAYS_LONG = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','
 const DAYS_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-// ─── Seed data (from official Wembley schedule) ───────────────────────────────
-const SEED_EVENTS = [
-  { date:'2026-04-12', name:'The Vertu Trophy Final — Luton Town v Stockport County', time:'15:00', type:'football' },
-  { date:'2026-04-14', name:'England Lionesses v Spain', time:'19:45', type:'football' },
-  { date:'2026-04-18', name:'Sidemen Charity Match', time:'15:00', type:'charity' },
-  { date:'2026-04-25', name:'The Emirates FA Cup Semi-Final 1', time:'15:30', type:'football' },
-  { date:'2026-04-26', name:'The Emirates FA Cup Semi-Final 2', time:'15:30', type:'football' },
-  { date:'2026-05-10', name:'Enterprise National League Promotion Final', time:'15:00', type:'football' },
-  { date:'2026-05-16', name:'The Emirates FA Cup Final', time:'15:00', type:'football' },
-  { date:'2026-05-23', name:'Sky Bet Championship Play-Off Final', time:'15:00', type:'football' },
-  { date:'2026-05-24', name:'Sky Bet League One Play-Off Final', time:'15:00', type:'football' },
-  { date:'2026-05-25', name:'Sky Bet League Two Play-Off Final', time:'15:00', type:'football' },
-  { date:'2026-05-30', name:'The Betfred Challenge Cup Final', time:'15:00', type:'sport' },
-  { date:'2026-05-31', name:'The Adobe Women\'s FA Cup Final', time:'15:00', type:'football' },
-  { date:'2026-07-08', name:'My Chemical Romance — Long Live The Black Parade Tour', time:'17:00', type:'concert' },
-  { date:'2026-07-10', name:'My Chemical Romance — Long Live The Black Parade Tour', time:'17:00', type:'concert' },
-  { date:'2026-07-11', name:'My Chemical Romance — Long Live The Black Parade Tour', time:'17:00', type:'concert' },
-  { date:'2026-07-31', name:'Luke Combs — My Kinda Saturday Night Tour', time:'17:00', type:'concert' },
-  { date:'2026-08-01', name:'Luke Combs — My Kinda Saturday Night Tour', time:'17:00', type:'concert' },
-  { date:'2026-08-02', name:'Luke Combs — My Kinda Saturday Night Tour', time:'17:00', type:'concert' },
-  { date:'2026-08-14', name:'The Weeknd — After Hours Til Dawn Tour', time:'19:00', type:'concert' },
-  { date:'2026-08-15', name:'The Weeknd — After Hours Til Dawn Tour', time:'19:00', type:'concert' },
-  { date:'2026-08-16', name:'The Weeknd — After Hours Til Dawn Tour', time:'19:00', type:'concert' },
-  { date:'2026-08-18', name:'The Weeknd — After Hours Til Dawn Tour', time:'19:00', type:'concert' },
-  { date:'2026-08-19', name:'The Weeknd — After Hours Til Dawn Tour', time:'19:00', type:'concert' },
-  { date:'2026-09-04', name:'Bon Jovi — Forever Tour', time:'19:00', type:'concert' },
-  { date:'2026-09-06', name:'Bon Jovi — Forever Tour', time:'19:00', type:'concert' },
-  { date:'2026-09-09', name:'Bon Jovi — Forever Tour', time:'19:00', type:'concert' },
-  { date:'2026-09-19', name:'Union Jack Classic — University of Kansas v Arizona State', time:'17:00', type:'sport' },
-];
 
-// ─── Persistence ─────────────────────────────────────────────────────────────
-function save() {
+
+// ─── Persistence backed by Server API ─────────────────────────────────────────────────────────────
+async function load() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      events: allEvents,
-      log: exportLog,
-      lastRun: document.getElementById('last-run-time').textContent,
-      schedDay: document.getElementById('schedule-day').value,
-      schedTime: document.getElementById('schedule-time').value,
-    }));
+    const res = await fetch('/api/events');
+    if (res.ok) allEvents = await res.json();
+  } catch(e) {
+    console.warn('[load] Could not fetch events from server:', e.message);
+  }
+  try {
+    const res = await fetch('/api/run-log');
+    if (res.ok) exportLog = await res.json();
+  } catch(e) {
+    console.warn('[load] Could not fetch run-log from server:', e.message);
+  }
+
+  // restore UI prefs from localStorage only (not data)
+  try {
+    const prefs = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+    if (prefs) {
+      if (prefs.lastRun) document.getElementById('last-run-time').textContent = prefs.lastRun;
+      if (prefs.schedDay) document.getElementById('schedule-day').value = prefs.schedDay;
+      if (prefs.schedTime) document.getElementById('schedule-time').value = prefs.schedTime;
+    }
   } catch(e) {}
 }
 
-function load() {
+
+function save() {
   try {
-    const d = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-    if (d) {
-      allEvents = d.events || SEED_EVENTS;
-      exportLog = d.log || [];
-      if (d.lastRun) document.getElementById('last-run-time').textContent = d.lastRun;
-      if (d.schedDay) document.getElementById('schedule-day').value = d.schedDay;
-      if (d.schedTime) document.getElementById('schedule-time').value = d.schedTime;
-      return;
-    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      lastRun:   document.getElementById('last-run-time').textContent,
+      schedDay:  document.getElementById('schedule-day').value,
+      schedTime: document.getElementById('schedule-time').value,
+    }));
   } catch(e) {}
-  allEvents = SEED_EVENTS;
-  exportLog = [];
 }
 
 function saveSchedule() {
@@ -432,9 +411,11 @@ function resetScheduleTimer() {
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
-load();
-render();
-resetScheduleTimer();
+(async () => {
+  await load();
+  render();
+  resetScheduleTimer();
+})();
 </script>
 </body>
 </html>

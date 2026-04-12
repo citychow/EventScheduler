@@ -3,9 +3,15 @@ module.exports = {
     {
       name:         'wembley-scheduler',
       script:       'scheduler.js',
-      cron_restart: '0 13 * * 5',   // every Friday at 14:00 (UTC+1)
-      autorestart:  false,           // don't restart after clean exit
+      cron_restart: '0 14 * * 5',
+      autorestart:  false,
       watch:        false,
+    },
+    {
+      name:        'venue-monitor-server',
+      script:      'server.js',
+      autorestart: true,
+      watch:       false,
     }
   ]
 };
