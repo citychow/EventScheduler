@@ -44,6 +44,7 @@
     <input type="time" id="schedule-time" value="14:00" onchange="saveSchedule()">
   </div>
   <button class="btn primary" id="check-btn" onclick="runCheck()">Run check now</button>
+  <button class="btn" id="export-btn" onclick="fetchEvents()">Export CSV</button>
   <div class="status-pill idle" id="status-pill">Idle</div>
 </div>
 
@@ -274,60 +275,84 @@ function renderExportLog() {
   el.innerHTML = html;
 }
 
-// ─── XLSX Export ──────────────────────────────────────────────────────────────
-function exportXLSX(weekLabel, weekDays) {
+// ─── Export CSV (weekly) function ────────────────────────────────────────────────────────────────
+function exportWeekCSV(weekLabel, weekDays) {
   const timestamp = new Date().toLocaleString('en-GB', { dateStyle:'short', timeStyle:'short' });
-  const filename = `wembley-${weekDays[0].toISOString().split('T')[0]}.xlsx`;
+  const filename = `wembley-${fmtDate(weekDays[0])}.csv`;
 
-  // Sheet 1: Schedule
-  const schedData = [
-    ['Wembley Stadium — Weekly Monitor'],
-    [`Week: ${weekLabel}`],
-    [`Exported: ${timestamp}`],
-    [],
-    ['Date', 'Day', 'Time', 'Event Name', 'Type'],
+  const escape = val => `"${String(val).replace(/"/g, '""')}"`;
+
+  const rows = [
+    `# Wembley Stadium - Weekly Monitor`,
+    `# Week: ${weekLabel}`,
+    `# Exported: ${timestamp}`,
+    '',
+    ['Date', 'Day', 'Time', 'Event Name', 'Type'].map(escape).join(','),
   ];
+
   weekDays.forEach(day => {
     const key = fmtDate(day);
     const evs = allEvents.filter(e => e.date === key);
     if (evs.length === 0) {
-      schedData.push([key, DAYS_LONG[day.getDay()], '—', 'No event scheduled', '—']);
+      rows.push([key, DAYS_LONG[day.getDay()], '', 'No event scheduled', ''].map(escape).join(','));
     } else {
-      evs.forEach(ev => {
-        schedData.push([key, DAYS_LONG[day.getDay()], ev.time, ev.name, ev.type]);
-      });
+      evs.forEach(ev =>
+        rows.push([ev.date, DAYS_LONG[day.getDay()], ev.time, ev.name, ev.type].map(escape).join(','))
+      );
     }
   });
 
-  // Sheet 2: Full upcoming
-  const allData = [
-    ['Full Upcoming Schedule — Wembley Stadium'],
-    [`Generated: ${timestamp}`],
-    [],
-    ['Date', 'Day', 'Time', 'Event Name', 'Type'],
-    ...allEvents
-      .sort((a,b) => a.date.localeCompare(b.date))
-      .map(e => [e.date, DAYS_LONG[new Date(e.date).getDay()], e.time, e.name, e.type])
-  ];
+  const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 
-  const wb = XLSX.utils.book_new();
-
-  const ws1 = XLSX.utils.aoa_to_sheet(schedData);
-  ws1['!cols'] = [{wch:12},{wch:12},{wch:8},{wch:55},{wch:12}];
-  ws1['A1'].s = { font: { bold: true, sz: 14 } };
-  XLSX.utils.book_append_sheet(wb, ws1, 'Weekly Schedule');
-
-  const ws2 = XLSX.utils.aoa_to_sheet(allData);
-  ws2['!cols'] = [{wch:12},{wch:12},{wch:8},{wch:55},{wch:12}];
-  XLSX.utils.book_append_sheet(wb, ws2, 'Full Schedule');
-
-  XLSX.writeFile(wb, filename);
-
-  // Log the export
-  exportLog.push({ timestamp, week: weekLabel, count: weekDays.flatMap(d => allEvents.filter(e => e.date === fmtDate(d))).length, filename });
+  const count = weekDays.flatMap(d => allEvents.filter(e => e.date === fmtDate(d))).length;
+  exportLog.push({ timestamp, week: weekLabel, count, filename });
   save();
   renderExportLog();
-  return filename;
+}
+
+
+// ─── Export CSV (all events) function ────────────────────────────────────────────────────────────────
+function exportCSV() {
+  const todayStr = fmtDate(new Date());
+  const timestamp = new Date().toLocaleString('en-GB', { dateStyle:'short', timeStyle:'short' });
+  const filename = `wembley-allEvents-${todayStr}.csv`;
+
+  const escape = val => `"${String(val).replace(/"/g, '""')}"`;
+
+  const rows = [
+    `# Wembley Stadium - Weekly Monitor`,
+    `# Exported: ${timestamp}`,
+    `# Source: Ticketmaster Discovery API`,
+    `# Showing all events from ${todayStr} onwards`,
+    '',
+    ['Date', 'Day', 'Time', 'Event Name', 'Type'].map(escape).join(','),
+  ];
+
+  allEvents
+    .filter(e => e.date >= todayStr)
+    .forEach(ev => {
+      const day = new Date(ev.date).getDay();
+      rows.push([ev.date, DAYS_LONG[day], ev.time, ev.name, ev.type].map(escape).join(','));
+    });
+
+  const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  const count = allEvents.filter(e => e.date >= todayStr).length;
+  exportLog.push({ timestamp, week: `From ${todayStr}`, count, filename });
+  save();
+  renderExportLog();
 }
 
 // ─── Check Run ────────────────────────────────────────────────────────────────
@@ -344,11 +369,37 @@ async function runCheck() {
   const now = new Date();
   document.getElementById('last-run-time').textContent = now.toLocaleString('en-GB', { dateStyle:'medium', timeStyle:'short' });
 
-  // Export next week's schedule
   const days = getWeekDays(1);
   const s = days[0], e = days[6];
   const weekLabel = `${DAYS_SHORT[s.getDay()]} ${s.getDate()} ${MONTHS[s.getMonth()]} – ${DAYS_SHORT[e.getDay()]} ${e.getDate()} ${MONTHS[e.getMonth()]} ${e.getFullYear()}`;
-  exportXLSX(weekLabel, days);
+  exportWeekCSV(weekLabel, days);
+
+  pill.className = 'status-pill done';
+  pill.textContent = 'Done ✓';
+  btn.disabled = false;
+  setTimeout(() => { pill.className = 'status-pill idle'; pill.textContent = 'Idle'; }, 3000);
+
+  render();
+  save();
+}
+
+async function fetchEvents() {
+  const btn = document.getElementById('export-btn');
+  const pill = document.getElementById('status-pill');
+  btn.disabled = true;
+  pill.className = 'status-pill running';
+  pill.textContent = 'Exporting...';
+
+  // Simulate API fetch delay (in production this calls your backend/scheduler)
+  await new Promise(r => setTimeout(r, 1200));
+
+  const now = new Date();
+  document.getElementById('last-run-time').textContent = now.toLocaleString('en-GB', { dateStyle:'medium', timeStyle:'short' });
+
+  // const days = getWeekDays(1);
+  // const s = days[0], e = days[6];
+  // const weekLabel = `${DAYS_SHORT[s.getDay()]} ${s.getDate()} ${MONTHS[s.getMonth()]} – ${DAYS_SHORT[e.getDay()]} ${e.getDate()} ${MONTHS[e.getMonth()]} ${e.getFullYear()}`;
+  exportCSV();
 
   pill.className = 'status-pill done';
   pill.textContent = 'Done ✓';
