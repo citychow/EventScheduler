@@ -34,7 +34,7 @@ const LOG_FILE     = path.join(__dirname, 'run-log.json');
 // Wembley Stadium venue ID on Ticketmaster
 const WEMBLEY_VENUE_ID = 'KovZpZAFnIeA,KovZpZAEknlA';
 
-
+// create a new folder for CSV exports if it doesn't exist
 if (!fs.existsSync(EXPORTS_DIR)) fs.mkdirSync(EXPORTS_DIR, { recursive: true });
 
 // ─── API key ──────────────────────────────────────────────────────────────────
