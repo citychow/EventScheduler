@@ -67,12 +67,18 @@ async function fetchTicketmaster(startDate, endDate) {
   let page = 0;
   let totalPages = 1;
 
+  // Convert local midnight to correct UTC time
+const toUTC = (dateStr) => {
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toISOString().replace('.000Z', 'Z');
+};
+
   while (page < totalPages) {
     const params = new URLSearchParams({
       apikey:        getApiKey(),
       venueId:       WEMBLEY_VENUE_ID,
-      startDateTime: startDate + 'T00:00:00Z',
-      endDateTime:   endDate   + 'T23:59:59Z',
+      startDateTime: toUTC(startDate),  // keep Z for correct fetching
+      endDateTime:   new Date(endDate + 'T23:59:59').toISOString().replace('.000Z', 'Z'),
       size:          '50',
       page:          String(page),
       sort:          'date,asc',
@@ -139,7 +145,7 @@ function mergeEvents(existing, fresh) {
 // ─── CSV export (zero dependencies, pure Node built-ins) ─────────────────────
 function exportToCSV(events) {
   const now = new Date();
-const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
   const filename = `wembley-${todayStr}.csv`;
   const filepath = path.join(EXPORTS_DIR, filename);
 
@@ -211,6 +217,7 @@ async function runCheck() {
     try { existing = JSON.parse(fs.readFileSync(EVENTS_FILE, 'utf8')); } catch(e) {}
   }
   const merged = mergeEvents(existing, freshEvents);
+  
   fs.writeFileSync(EVENTS_FILE, JSON.stringify(merged, null, 2));
   console.log(`[Events] Saved ${merged.length} total events to events.json`);
 
