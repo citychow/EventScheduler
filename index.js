@@ -1,5 +1,5 @@
 // ─── State ───────────────────────────────────────────────────────────────────
-let weekOffset = 1;
+let weekOffset = 0; //current week
 let allEvents = [];
 let exportLog = [];
 
