@@ -43,8 +43,8 @@
     </select>
     <input type="time" id="schedule-time" value="14:00" onchange="saveSchedule()">
   </div>
-  <button class="btn primary" id="check-btn" onclick="runCheck()">Run check now</button>
-  <button class="btn" id="export-btn" onclick="fetchEvents()">Export CSV</button>
+  <button class="btn primary" id="check-btn" onclick="runCheck()">Export Current</button>
+  <button class="btn" id="export-btn" onclick="fetchEvents()">Export ALL</button>
   <div class="status-pill idle" id="status-pill">Idle</div>
 </div>
 
@@ -347,7 +347,7 @@ async function runCheck() {
   const now = new Date();
   document.getElementById('last-run-time').textContent = now.toLocaleString('en-GB', { dateStyle:'medium', timeStyle:'short' });
 
-  const days = getWeekDays(1);
+  const days = getWeekDays(weekOffset);
   const s = days[0], e = days[6];
   const weekLabel = `${DAYS_SHORT[s.getDay()]} ${s.getDate()} ${MONTHS[s.getMonth()]} – ${DAYS_SHORT[e.getDay()]} ${e.getDate()} ${MONTHS[e.getMonth()]} ${e.getFullYear()}`;
   exportWeekCSV(weekLabel, days);
