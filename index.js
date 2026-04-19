@@ -45,6 +45,15 @@ function fmtDate(d) {
 
 function changeWeek(delta) { weekOffset += delta; render(); }
 
+// ─── Class for venue tags ─────────────────────────────────────────────────────────────
+function getVenueClass(venueName) {
+  if (!venueName) return '';
+  const name = venueName.toLowerCase();
+  if (name.includes('ovo') || name.includes('arena')) return 'venue-ovo';
+  if (name.includes('wembley stadium')) return 'venue-wembley';
+  return 'venue-other';
+}
+
 // ─── Render ───────────────────────────────────────────────────────────────────
 function render() {
   const days = getWeekDays(weekOffset);
@@ -83,11 +92,13 @@ function render() {
       evHtml += '<div class="no-event">No event</div>';
     } else {
       evs.forEach(ev => {
-        evHtml += `<div class="event-entry">
-          <span class="event-time">${ev.time}</span>
-          <span class="event-name">${ev.name}</span>
-          <span class="event-badge badge-${ev.type}">${ev.type}</span>
-        </div>`;
+        const venueTag = ev.venueName ? `<span class="venue-tag ${getVenueClass(ev.venueName)}">${ev.venueName}</span>`: '';
+  evHtml += `<div class="event-entry">
+    ${venueTag}
+    <span class="event-time">${ev.time}</span>
+    <span class="event-name">${ev.name}</span>
+    <span class="event-badge badge-${ev.type}">${ev.type}</span>
+  </div>`;
       });
     }
     evHtml += '</div>';
@@ -164,7 +175,7 @@ function exportWeekCSV(weekLabel, weekDays) {
     `# Week: ${weekLabel}`,
     `# Exported: ${timestamp}`,
     '',
-    ['Date', 'Day', 'Time', 'Event Name', 'Type'].map(escape).join(','),
+    ['Date', 'Day', 'Time', 'Event Name', 'Type', 'Venue'].map(escape).join(','),
   ];
 
   weekDays.forEach(day => {
@@ -174,7 +185,7 @@ function exportWeekCSV(weekLabel, weekDays) {
       rows.push([key, DAYS_LONG[day.getDay()], '', 'No event scheduled', ''].map(escape).join(','));
     } else {
       evs.forEach(ev =>
-        rows.push([ev.date, DAYS_LONG[day.getDay()], ev.time, ev.name, ev.type].map(escape).join(','))
+        rows.push([ev.date, DAYS_LONG[day.getDay()], ev.time, ev.name, ev.type, ev.venueName  || ''].map(escape).join(','))
       );
     }
   });
@@ -207,14 +218,14 @@ function exportCSV() {
     `# Source: Ticketmaster Discovery API`,
     `# Showing all events from ${todayStr} onwards`,
     '',
-    ['Date', 'Day', 'Time', 'Event Name', 'Type'].map(escape).join(','),
+    ['Date', 'Day', 'Time', 'Event Name', 'Type', 'Venue'].map(escape).join(','),
   ];
 
   allEvents
     .filter(e => e.date >= todayStr)
     .forEach(ev => {
       const day = new Date(ev.date).getDay();
-      rows.push([ev.date, DAYS_LONG[day], ev.time, ev.name, ev.type].map(escape).join(','));
+      rows.push([ev.date, DAYS_LONG[day], ev.time, ev.name, ev.type, ev.venueName  || ''].map(escape).join(','));
     });
 
   const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });

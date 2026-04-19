@@ -341,3 +341,29 @@
     .summary-strip { flex-wrap: wrap; }
     .day-row { grid-template-columns: 60px 1fr; }
   }
+
+  .venue-tag {
+  display: inline-block;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.venue-wembley {
+  background: #E8F0EC;
+  color: #2941ad;
+}
+
+.venue-ovo {
+  background: #EDE8F5;
+  color: #15a581;
+}
+
+.venue-other {
+  background: #F1EFE8;
+  color: #af9b4b;
+}

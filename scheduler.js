@@ -30,7 +30,8 @@ const LOG_FILE     = path.join(__dirname, 'run-log.json');
 const TM_KEY_FILE  = path.join(__dirname, 'tm-api-key.txt');
 
 // Wembley Stadium venue ID on Ticketmaster
-const WEMBLEY_VENUE_ID = 'KovZpZAFnIeA,KovZpZAEknlA';
+const WEMBLEY_VENUE_ID = 'KovZ9177ML0,KovZ9177yOV';
+//KovZ9177W-7 is Wembley VIP but seems to have no events, so skipping for now
 
 // create exports dir if missing
 if (!fs.existsSync(EXPORTS_DIR)) fs.mkdirSync(EXPORTS_DIR, { recursive: true });
@@ -69,7 +70,7 @@ const toUTC = (dateStr) => {
       venueId:       WEMBLEY_VENUE_ID,
       startDateTime: toUTC(startDate),  // keep Z for correct fetching
       endDateTime:   new Date(endDate + 'T23:59:59').toISOString().replace('.000Z', 'Z'),
-      size:          '50',
+      size:          '200',
       page:          String(page),
       sort:          'date,asc',
     });
@@ -106,22 +107,37 @@ const toUTC = (dateStr) => {
 
 // ─── Parse Ticketmaster response into our event shape ─────────────────────────
 function parseTicketmasterEvents(items) {
-  return items.map(ev => {
-    const dateInfo = ev.dates?.start;
-    const date = dateInfo?.localDate || '';
-    const time = dateInfo?.localTime?.slice(0, 5) || '19:00';
-    const name = ev.name || 'Unknown event';
-    const segment = ev.classifications?.[0]?.segment?.name?.toLowerCase() || '';
-    const genre   = ev.classifications?.[0]?.genre?.name?.toLowerCase()   || '';
+  return items
+    .filter(ev => {
+      const name = ev.name.toLowerCase();
+      // remove premium ticket duplicates
+      if (name.includes('venue premium tickets')) return false;
+      // remove individual session tickets (keep day passes and main events)
+      if (name.match(/session \d+/i)) return false;
+      return true;
+    })
+    .map(ev => {
+      const dateInfo = ev.dates?.start;
+      const date = dateInfo?.localDate || '';
+      const time = dateInfo?.localTime?.slice(0, 5) || '19:00';
+      const name = ev.name || 'Unknown event';
+      const segment = ev.classifications?.[0]?.segment?.name?.toLowerCase() || '';
+      const genre   = ev.classifications?.[0]?.genre?.name?.toLowerCase()   || '';
 
-    let type = 'sport';
-    if (segment === 'music' || genre.includes('concert')) type = 'concert';
-    else if (genre.includes('football') || genre.includes('soccer'))  type = 'football';
-    else if (name.toLowerCase().includes('charity')) type = 'charity';
-    else if (segment === 'sports') type = 'sport';
+      const venueName = ev._embedded?.venues?.[0]?.name || '';
+      const venueId   = ev._embedded?.venues?.[0]?.id   || '';
 
-    return { date, name, time, type };
-  }).filter(e => e.date);
+      let type = 'sport';
+      if (segment === 'music') type = 'concert';
+      else if (genre.includes('wrestling')) type = 'sport';
+      else if (genre.includes('football') || genre.includes('soccer')) type = 'football';
+      else if (genre.includes('comedy') || segment === 'arts & theatre') type = 'other';
+      else if (name.toLowerCase().includes('charity')) type = 'charity';
+      else if (segment === 'sports') type = 'sport';
+
+      return { date, name, time, type, venueName, venueId };
+    })
+    .filter(e => e.date);
 }
 
 // ─── Merge new events with existing (dedup by date+name) ─────────────────────

@@ -238,5 +238,29 @@
     "totalEvents": 56,
     "exportFile": "wembley-2026-04-13.csv",
     "source": "Ticketmaster Discovery API"
+  },
+  {
+    "timestamp": "19/04/2026, 21:15:34",
+    "week": "Mon 20 Apr 2026 – Sun 26 Apr 2026",
+    "eventsFound": 80,
+    "totalEvents": 133,
+    "exportFile": "wembley-2026-04-19.csv",
+    "source": "Ticketmaster Discovery API"
+  },
+  {
+    "timestamp": "19/04/2026, 21:16:00",
+    "week": "Mon 20 Apr 2026 – Sun 26 Apr 2026",
+    "eventsFound": 80,
+    "totalEvents": 76,
+    "exportFile": "wembley-2026-04-19.csv",
+    "source": "Ticketmaster Discovery API"
+  },
+  {
+    "timestamp": "19/04/2026, 21:24:02",
+    "week": "Mon 20 Apr 2026 – Sun 26 Apr 2026",
+    "eventsFound": 80,
+    "totalEvents": 76,
+    "exportFile": "wembley-2026-04-19.csv",
+    "source": "Ticketmaster Discovery API"
   }
 ]
